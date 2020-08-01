@@ -81,6 +81,10 @@ opt.read_options(o, 'coverart')
 local names = {}
 local imageExts = {}
 local decodeProtocols = {}
+local prev = {
+    directory = "",
+    coverart = {}
+}
 
 o.placeholder = mp.command_native({"expand-path", o.placeholder})
 
@@ -187,9 +191,13 @@ function loadCover(path)
         msg.debug('decoding URL')
         path = decodeURI(path)
     end
+    table.insert(prev.coverart, path)
+    addVideo(path)
+end
 
-    --adds the new file to the playing list
-    --if there is no video track currently selected then it autoloads track #1
+--adds the new file to the playing list
+--if there is no video track currently selected then it autoloads track #1
+function addVideo(path)
     if mp.get_property_number('vid', 0) == 0 and mp.get_property('options/vid') == "auto" then
         mp.commandv('video-add', path)
     else
@@ -264,6 +272,19 @@ function checkForCoverart()
     local directory = utils.split_path(exact_path)
     msg.verbose('directory: ' .. directory)
 
+    --checks if the directory is the same as the previous file, and if so just reloads
+    --the same coverart again
+    if directory == prev.directory then
+        msg.verbose('Same directory as previous file, skipping coverart check')
+        for _,path in ipairs(prev.coverart) do
+            addVideo(path)
+        end
+        return
+    else
+        prev.directory = directory
+        prev.coverart = {}
+    end
+
     local succeeded = false
     if o.load_from_filesystem then
         --loads the files from the directory
@@ -302,6 +323,11 @@ mp.register_event('file-loaded', checkForCoverart)
 
 --to force an update during runtime
 mp.register_script_message('load-coverart', checkForCoverart)
+
+--resets the cache of coverart for 
+mp.observe_property('playlist-count', 'number', function()
+    prev.directory = ""
+end)
 
 --skips coverart in the playlist
 if o.skip_coverart then
