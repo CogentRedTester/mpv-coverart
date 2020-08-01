@@ -45,7 +45,13 @@ local o = {
     --search for valid coverart in the current playlist
     --this may seem pointless, but it's useful for streaming from
     --network file servers which mpv can't usually scan
+    --this entry causes the script to always search the playlist,
+    --for the default behaviour described in the README see below
     load_from_playlist = false,
+
+    --attempts to load from playlist automatically if it can't find anything on the file system
+    --this overrides the load_from_playlist entry above
+    auto_load_from_playlist = true,
 
     --If this is enabled then only valid coverart in the playlist that is
     --also in the same directory as the currently playing file will be loaded.
@@ -55,9 +61,6 @@ local o = {
     --scans the parent directory for coverart as well, this
     --currently doesn't do anything when loading from a playlist
     check_parent = false,
-
-    --attempts to load from playlist automatically if it can't find anything on the file system
-    auto_load_from_playlist = true,
 
     --skip coverart files if they are in the playlist
     skip_coverart = false,
