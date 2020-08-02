@@ -289,18 +289,18 @@ function checkForCoverart()
     if o.load_from_filesystem then
         --loads the files from the directory
         succeeded = addFromDirectory(directory)
-        if not o.load_extra_files and succeeded then return end
+        if not o.load_extra_files and succeeded > 0 then return end
 
         if o.check_parent and succeeded then
             succeeded = addFromDirectory(directory .. "/../")
-            if not o.load_extra_files and succeeded then return end
+            if not o.load_extra_files and succeeded > 0 then return end
         end
     end
     if ((not succeeded) and o.auto_load_from_playlist) or o.load_from_playlist then
         --loads files from playlist
         msg.verbose('searching for coverart in current playlist')
         local pls = mp.get_property_native('playlist')
-        
+
         for i,v in ipairs(pls)do
             local dir, name = utils.split_path(v.filename)
             if (not o.enforce_playlist_directory) or utils.join_path(workingDirectory, dir) == directory then
@@ -308,7 +308,7 @@ function checkForCoverart()
                     msg.verbose('found cover in playlist')
                     loadCover(v.filename)
                     if not o.load_extra_files then return end
-                    succeeded = true
+                    succeeded = 1
                 end
             end
         end
