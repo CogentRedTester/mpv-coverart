@@ -1,53 +1,55 @@
 # mpv-coverart
 
-This script is for automatically loading external coverart files into mpv media player as additional video tracks.
+This script is for automatically loading external cover art files into mpv media player as additional video tracks.
 
-## Valid Coverart
-The script will automatically search the various scan locations for valid coverart. By default this will be all image files with the specified file names; names and image extensions can be modified through the config file. By setting the list of names to an empty string any image file in the scan locations will be loaded, by setting the list of image extensions to an empty string any file with the right name will be loaded. Naturally, it's a bad idea to disable both filters.
+## Valid Cover-art
+The script will automatically search the various scan locations for valid cover art. By default this will be all image files with the specified file names; names and image extensions can be modified through the config file. By setting the list of names to an empty string any image file in the scan locations will be loaded, by setting the list of image extensions to an empty string any file with the right name will be loaded. Naturally, it's a bad idea to disable both filters.
 
 
 ## Scan Locations
-By default the script will search the directory of the currently played file for valid coverart. However, if the file system is unnavailable (when playing a network file), the script will then also search the current playlist, but still require that the file has the same directory. Both file system scanning and playlist scanning can be disabled in the config file.
+By default the script will search the directory of the currently played file for valid cover art. However, if the file system is unnavailable (when playing a network file), the script will then also search the current playlist, but still require that the file has the same directory. Both file system scanning and playlist scanning can be disabled in the config file.
 
 Through config options scanning of the parent folder for the current file can also be enabled. The requirements that the file system must be unavailable for the playlist to be scanned, and the subsequent directory requirements, can also be disabled.
 
 
 ## Scan Conditions
-By default the script only searches for coverart if the current file is detected to be an audio file. An audio file is defined as one where the first entry in the track list is an audio track, or is tagged as coverart. The script can be changed to always scan for coverart in the options.
+By default the script only searches for cover art if the current file is detected to be an audio file. An audio file is defined as one where the first entry in the track list is an audio track, or is tagged as cover art. The script can be changed to always scan for cover art in the options. 
 
+The script will detect when a file in the same directory is loaded and will reuse the same cover art without rescanning the folder. Additionally, if `--audio-display=no` is set then this script will not search for cover art at all. All options that can affect when files get scanned are documented in coverart.conf.
 
-## Placeholder
-This script supports loading a placeholder image when coverart is not found. This can be useful for people who don't like thier music running in the terminal, but also dislike the default black box that mpv player shows.
-
+You can also force the script to search for and load cover art using `script-message load-coverart`. This will bypass most scanning restrictions, including all of those mentioned above.
 
 ## Misc Behaviour
-If --audio-display=no is set then this script will not load any coverart. If --vid=no is set then this
-script will load external coverart, but will not select them by default. Any other value for vid will only
-properly select internal coverart, though you might get lucky and have it select the right track by chance.
+If `--vid=no` is set then this
+script will load external cover art, but will not select them by default. Any other value for vid will only
+properly select internal cover art, though you might get lucky and have it select the right track by chance.
 
 
 ## Other Functionality
 I've thrown a few other small features into the script that may be useful:
 
+### Placeholder
+This script supports loading a placeholder image when cover art is not found. This can be useful for people who don't like their music running in the terminal, but also dislike the default black box that mpv player shows.
+
 ### Preload Mode
 This is an experimental feature.
 
-Loads coverart synchronously by hooking into the player's preloading phase
+Loads cover art synchronously by hooking into the player's preloading phase
 (after file is loaded, but before playback start or track selection)
 what this means in practice is the following:
-* mpv player will not start playback until all coverart is loaded
+* mpv player will not start playback until all cover art is loaded
 * this means that on slow file/network systems playback may be delayed
 * `track added` messages are not printed to the console
 * the `--vid=n` property is supported since mpv doesn't attempt to select `n` until after covers are loaded
-* no more awkward switch from the black no-video screen to coverart at the start of every file
-* external coverart will be loaded by default instead of embedded images (seems to be a bug in mpv's video-add command)
+* no more awkward switch from the black no-video screen to cover art at the start of every file
+* external cover art will be loaded by default instead of embedded images (seems to be a bug in mpv's video-add command)
 * may provide better compatibility with some other scripts
 
 ### Skip Coverart
-When this is enabled the script will automatically skip any valid coverart files in the playlist, this can be very useful when loading a whole folder directly.
+When this is enabled the script will automatically skip any valid cover art files in the playlist, this can be very useful when loading a whole folder directly.
 
 ### Decode URLs
 When this is enabled mpv will attempt to undo URL percent encoding for the specified protocols. This is probably only useful for the ftp protocol, for which ffmpeg does not support percent encoding.
 
 ## Configuration
-Look at coverart.conf for the full list of options. This config file can be placed into the script-opts folder inside the mpv config directory to be loaded automatically.
+Look at cover art.conf for the full list of options. This config file can be placed into the script-opts folder inside the mpv config directory to be loaded automatically.
