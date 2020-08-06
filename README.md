@@ -29,6 +29,20 @@ properly select internal coverart, though you might get lucky and have it select
 ## Other Functionality
 I've thrown a few other small features into the script that may be useful:
 
+### Preload Mode
+This is an experimental feature.
+
+Loads coverart synchronously by hooking into the player's preloading phase
+(after file is loaded, but before playback start or track selection)
+what this means in practice is the following:
+* mpv player will not start playback until all coverart is loaded
+* this means that on slow file/network systems playback may be delayed
+* `track added` messages are not printed to the console
+* the `--vid=n` property is supported since mpv doesn't attempt to select `n` until after covers are loaded
+* no more awkward switch from the black no-video screen to coverart at the start of every file
+* external coverart will be loaded by default instead of embedded images (seems to be a bug in mpv's video-add command)
+* may provide better compatibility with some other scripts
+
 ### Skip Coverart
 When this is enabled the script will automatically skip any valid coverart files in the playlist, this can be very useful when loading a whole folder directly.
 

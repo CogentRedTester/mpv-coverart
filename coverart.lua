@@ -65,6 +65,17 @@ local o = {
     --skip coverart files if they are in the playlist
     skip_coverart = false,
 
+    --this is an experimental feature
+    --loads coverart synchronously during the preloading phase (after file is loaded,
+    --but before playback start or track selection)
+    --what this means in practice is the following:
+    --  -mpv player will not start playback until all coverart is loaded
+    --  -this means that on slow file/network systems playback may be delayed
+    --  -'track added' messages are not printed to the console
+    --  -the --vid=x property is supported since mpv doesn't attempt to select x until after covers are loaded
+    --  -external coverart will be loaded by default instead of embedded images (seems to be a bug in video-add command)
+    preload = false,
+
     --decode URL percent encoding
     decode_urls = false,
 
@@ -143,10 +154,23 @@ function needsDecoding(path)
     return decodeProtocols[protocol]
 end
 
+function hasVideo()
+    local tracks = mp.get_property_native('track-list')
+    for _,v in ipairs(tracks) do
+        if (v.type == "video") then
+            return true
+        end
+    end
+end
+
 --loads a placeholder image as cover art for the file
 function loadPlaceholder()
-    if o.placeholder == "" then return end
-    if not ((mp.get_property('vid') == "no" and mp.get_property('options/vid', "") == "auto") and mp.get_property_bool('force-window')) then return end
+    if  o.placeholder == ""
+        or not mp.get_property_bool('force-window', false)
+        or hasVideo()
+    then
+        return
+    end
 
     msg.verbose('file does not have video track, loading placeholder')
     loadCover(o.placeholder)
@@ -168,7 +192,7 @@ end
 
 --checks if the given file matches the cover art requirements
 function isValidCoverart(file)
-    msg.verbose('testing if ' .. file .. ' is valid coverart')
+    msg.debug('testing if ' .. file .. ' is valid coverart')
     local filename, fileext = splitFileName(file)
 
     if o.imageExts ~= "" and not imageExts[fileext] then
@@ -198,7 +222,16 @@ end
 --adds the new file to the playing list
 --if there is no video track currently selected then it autoloads track #1
 function addVideo(path)
-    if mp.get_property_number('vid', 0) == 0 and mp.get_property('options/vid') == "auto" then
+    --if preload is enabled we'll add everything the same way
+    --and let mpv decide the track selection based on the --vid setting
+    if o.preload then
+        mp.commandv('video-add', path, "auto")
+        return
+    end
+
+    if  mp.get_property_number('vid', 0) == 0
+        and mp.get_property('options/vid') == "auto"
+    then
         mp.commandv('video-add', path)
     else
         mp.commandv('video-add', path, "auto")
@@ -219,7 +252,7 @@ function addFromDirectory(directory)
     for i, file in ipairs(files) do
         --if the name matches one in the whitelist then load it
         if isValidCoverart(file) then
-            msg.verbose(file .. ' found in whitelist - adding as extra video track...')
+            msg.verbose(file .. ' is valid coverart - adding as extra video track...')
             success = 1
             loadCover(utils.join_path(directory, file))
             if not o.load_extra_files then return 1 end
@@ -228,7 +261,20 @@ function addFromDirectory(directory)
     return success
 end
 
-function checkForCoverart()
+--finds directory information for the current file
+function findDirectory()
+        --finds the local directory of the file
+        local workingDirectory = mp.get_property('working-directory')
+        local filepath = mp.get_property('path')
+        local exact_path = utils.join_path(workingDirectory, filepath)
+
+        --splits the directory and filename apart
+        local directory = utils.split_path(exact_path)
+        return workingDirectory, filepath, exact_path, directory
+end
+
+--checks if the file requires a coverart search
+function autoRunCoverart()
     --aborts the script if audio-display is disabled
     if mp.get_property('audio-display', "no") == "no" then
         msg.verbose('audio-display is disabled, aborting script')
@@ -238,39 +284,25 @@ function checkForCoverart()
     --does not look for cover art if the file is not an audio file
     if not o.always_scan_coverart and not is_audio_file() then
         msg.verbose('file is not an audio file, aborting coverart search')
-        loadPlaceholder()
         return
     end
 
     --if the file has video tracks then we cancel the cover lookup
-    if (not o.load_extra_files) and (mp.get_property_number('vid', 0) ~= 0) then
+    --this check won't work when preload is active
+    if (not o.load_extra_files) and (mp.get_property_number('vid', 0) ~= 0) and not o.preload then
         return
     end
 
     --if auto is not selected, then we need to scan the tracklist to
     --see if there is existing coverart
-    if (not o.load_extra_files) and mp.get_property('options/vid') ~= "auto" then
-        msg.verbose('scanning track-list for coverart')
-        local tracks = mp.get_property_native('track-list', {})
-        for i,v in ipairs(tracks) do
-            if v.type == "video" then
-                msg.verbose('video stream found, aborting coverart search')
-                return
-            end
-        end
+    if  (not o.load_extra_files)
+        and (mp.get_property('options/vid') ~= "auto" or o.preload)
+        and hasVideo()
+    then
+        return
     end
 
-    --finds the local directory of the file
-    local workingDirectory = mp.get_property('working-directory')
-    msg.verbose('working-directory: ' .. workingDirectory)
-    local filepath = mp.get_property('path')
-    msg.verbose('filepath: ' .. filepath)
-    local exact_path = utils.join_path(workingDirectory, filepath)
-    msg.verbose('full path: ' .. exact_path)
-
-    --splits the directory and filename apart
-    local directory = utils.split_path(exact_path)
-    msg.verbose('directory: ' .. directory)
+    a,b,c,directory = findDirectory()
 
     --checks if the directory is the same as the previous file, and if so just reloads
     --the same coverart again
@@ -284,6 +316,13 @@ function checkForCoverart()
         prev.directory = directory
         prev.coverart = {}
     end
+
+    main(a,b,c,directory)
+end
+
+--does the actual coverart loading
+function main(workingDirectory, filepath, exact_path, directory)
+    msg.verbose('loading coverart for  "' .. exact_path  .. '"')
 
     local succeeded = false
     if o.load_from_filesystem then
@@ -319,10 +358,16 @@ function checkForCoverart()
 end
 
 --runs automatically whenever a file is loaded
-mp.register_event('file-loaded', checkForCoverart)
+if (o.preload) then
+    mp.add_hook('on_preloaded', 50, autoRunCoverart)
+else
+    mp.register_event('file-loaded', autoRunCoverart)
+end
 
 --to force an update during runtime
-mp.register_script_message('load-coverart', checkForCoverart)
+mp.register_script_message('load-coverart', function()
+    main(findDirectory())
+end)
 
 --resets the cache of coverart for 
 mp.observe_property('playlist-count', 'number', function()
