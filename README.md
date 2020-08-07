@@ -26,7 +26,9 @@ properly select internal cover art, though you might get lucky and have it selec
 
 
 ## Other Functionality
-I've thrown a few other small features into the script that may be useful:
+I've thrown a few other small features into the script that may be useful.
+
+None of these are enabled by default.
 
 ### Placeholder
 This script supports loading a placeholder image when cover art is not found. This can be useful for people who don't like their music running in the terminal, but also dislike the default black box that mpv player shows.
