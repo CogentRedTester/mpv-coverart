@@ -179,7 +179,7 @@ function loadPlaceholder()
     end
 
     msg.verbose('file does not have video track, loading placeholder')
-    loadCover(o.placeholder)
+    addVideo(o.placeholder)
 end
 
 --splits filename into a name and extension
@@ -320,6 +320,9 @@ function autoRunCoverart()
         msg.verbose('Same directory as previous file, skipping coverart check')
         for _,path in ipairs(prev.coverart) do
             addVideo(path)
+        end
+        if #prev.coverart < 1 then
+            loadPlaceholder()
         end
         return
     else
