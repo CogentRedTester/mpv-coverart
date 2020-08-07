@@ -73,7 +73,10 @@ local o = {
     --  -this means that on slow file/network systems playback may be delayed
     --  -'track added' messages are not printed to the console
     --  -the --vid=x property is supported since mpv doesn't attempt to select x until after covers are loaded
-    --  -external coverart will be loaded by default instead of embedded images (seems to be a bug in video-add command)
+    --  -no more awkward switch from the black no-video screen to cover art at the start of every file (force-window=yes)
+    --  -window doesn't close and reopen in-between files when playing from the terminal (force-window=no)
+    --  -external coverart will be loaded by default instead of embedded images (see below to change behaviour)
+    --  -may provide better compatibility with some other scripts
     preload = false,
 
     --prefer embedded video tracks over new external files when preload=true

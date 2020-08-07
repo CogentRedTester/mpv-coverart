@@ -44,7 +44,8 @@ what this means in practice is the following:
 * `track added` messages are not printed to the console
 * the `--vid=n` property is supported since mpv doesn't attempt to select `n` until after covers are loaded
 * watch-later saves will remember which cover the video was on
-* no more awkward switch from the black no-video screen to cover art at the start of every file
+* no more awkward switch from the black no-video screen to cover art at the start of every file (force-window=yes)
+* the window doesn't close and reopen in-between files when playing from the terminal (force-window=no)
 * external cover art will be loaded by default instead of embedded images (mpv behaviour, can be changed with an option)
 * may provide better compatibility with some other scripts
 
