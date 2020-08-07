@@ -76,6 +76,12 @@ local o = {
     --  -external coverart will be loaded by default instead of embedded images (seems to be a bug in video-add command)
     preload = false,
 
+    --prefer embedded video tracks over new external files when preload=true
+    --by default mpv will select external video tracks first
+    --this setting forces the first embedded file to be played first instead
+    --to be specific this option just sets --vid to 1 when it is on auto
+    prefer_embedded = false,
+
     --decode URL percent encoding
     decode_urls = false,
 
@@ -226,6 +232,10 @@ function addVideo(path)
     --and let mpv decide the track selection based on the --vid setting
     if o.preload then
         mp.commandv('video-add', path, "auto")
+
+        if o.prefer_embedded and mp.get_property('options/vid', "") == "auto" then
+            mp.set_property_number('file-local-options/vid', 1)
+        end
         return
     end
 
@@ -302,7 +312,7 @@ function autoRunCoverart()
         return
     end
 
-    a,b,c,directory = findDirectory()
+    local a,b,c,directory = findDirectory()
 
     --checks if the directory is the same as the previous file, and if so just reloads
     --the same coverart again
