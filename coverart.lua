@@ -392,10 +392,29 @@ end)
 
 --skips coverart in the playlist
 if o.skip_coverart then
+    local cover_next = true
+    mp.add_hook('on_unload', 50, function()
+        local playing = mp.get_property_number('playlist-playing-pos')
+        local current = mp.get_property_number('playlist-current-pos')
+        local count = mp.get_property_number('playlist-count')
+        if playing == 0 and current == count-1 then
+            cover_next = false
+        elseif playing == count-1 and current == 0 then
+            cover_next = true
+        else
+            cover_next = playing < current
+        end
+    end)
+
     mp.add_hook('on_load', 30, function()
-        if isValidCoverart(mp.get_property('filename', '')) and mp.get_property_number('playlist-count') > 1 then
+        local filename = mp.get_property('filename', '')
+        if isValidCoverart(filename) and mp.get_property_number('playlist-count') > 1 then
             msg.info('skipping coverart in playlist')
-            mp.command('playlist-next')
+            if cover_next then
+                mp.command('playlist-next')
+            else
+                mp.command('playlist-prev')
+            end
         end
     end)
 end
