@@ -58,6 +58,10 @@ local o = {
     --If disabled, then any valid coverart in the playlist will be loaded.
     enforce_playlist_directory = true,
 
+    --When the file has icy-name metadata saved, search for coverart matching the file's icy-name inside
+    --this directory. This is for providing coverart for radio streams, and is still experimental.
+    icy_directory = "",
+
     --scans the parent directory for coverart as well, this
     --currently doesn't do anything when loading from a playlist
     check_parent = false,
@@ -107,6 +111,7 @@ local prev = {
 }
 
 o.placeholder = mp.command_native({"expand-path", o.placeholder})
+o.icy_directory = mp.command_native({"expand-path", o.icy_directory})
 
 --splits the string into a table on the semicolons
 function create_table(input)
@@ -211,7 +216,10 @@ function isValidCoverart(file)
     else
         msg.debug('"' .. fileext .. '" valid, checking for valid name...')
     end
-    if o.names == "" or names[filename] then
+
+    if  o.names == "" or names[filename]
+        or (o.icy_directory ~= "" and filename == mp.get_property('metadata/by-key/icy-name', ''):lower())
+    then
         msg.debug('filename valid')
         return true
     end
@@ -417,5 +425,18 @@ if o.skip_coverart then
                 mp.command('playlist-prev')
             end
         end
+    end)
+end
+
+if o.icy_directory ~= "" then
+    mp.observe_property('metadata/by-key/icy-name', 'string', function(_, name)
+        if name == nil then return end
+
+        if addFromDirectory(o.icy_directory) ~= 1 then return end
+        local id = 2
+        if o.placeholder == "" then
+            id = 1
+        end
+        mp.set_property_number('file-local-options/vid', id)
     end)
 end
