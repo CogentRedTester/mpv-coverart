@@ -191,6 +191,7 @@ function splitFileName(file)
 
     --finds the file extension
     local index = file:find([[.[^.]*$]])
+    if not index then return file, "" end
     local fileext = file:sub(index + 1)
 
     --find filename
