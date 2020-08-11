@@ -207,7 +207,7 @@ end
 
 --checks if the given file matches the cover art requirements
 function isValidCoverart(file)
-    msg.debug('testing if ' .. file .. ' is valid coverart')
+    msg.debug('testing if "' .. file .. '" is valid coverart')
     local filename, fileext = splitFileName(file)
 
     if o.imageExts ~= "" and not imageExts[fileext] then
@@ -269,17 +269,17 @@ end
 function addFromDirectory(directory, bypass, force)
     local files = utils.readdir(directory, "files")
     if files == nil then
-        msg.verbose('no files could be loaded from ' .. directory)
+        msg.verbose('no files could be loaded from "' .. directory .. '"')
         return false
     end
-    msg.verbose('scanning files in ' .. directory)
+    msg.verbose('scanning files in "' .. directory .. '"')
 
     --loops through the all the files in the directory to find if any are valid cover art
     local success = 0
     for i, file in ipairs(files) do
         --if the name matches one in the whitelist then load it
         if isValidCoverart(file) then
-            msg.verbose(file .. ' is valid coverart - adding as extra video track...')
+            msg.verbose('"' .. file .. '" is valid coverart - adding as extra video track...')
             success = 1
             if not bypass then
                 loadCover(utils.join_path(directory, file), force)
@@ -356,7 +356,7 @@ end
 
 --does the actual coverart loading
 function main(workingDirectory, filepath, exact_path, directory)
-    msg.verbose('loading coverart for  "' .. exact_path  .. '"')
+    msg.verbose('loading coverart for "' .. exact_path  .. '"')
 
     local succeeded = false
     if o.load_from_filesystem then
@@ -440,6 +440,7 @@ end
 if o.icy_directory ~= "" then
     mp.observe_property('metadata/by-key/icy-name', 'string', function(_, name)
         if name == nil then return end
+        msg.verbose('icy stream detected - loading coverart')
         addFromDirectory(o.icy_directory, true, true)
     end)
 end
