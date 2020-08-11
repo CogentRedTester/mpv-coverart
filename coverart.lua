@@ -228,22 +228,26 @@ function isValidCoverart(file)
 end
 
 --loads the coverart
-function loadCover(path)
+function loadCover(path, force)
     if o.decode_urls and needsDecoding(path) then
         msg.debug('decoding URL')
         path = decodeURI(path)
     end
     table.insert(prev.coverart, path)
-    addVideo(path)
+    addVideo(path, force)
 end
 
 --adds the new file to the playing list
 --if there is no video track currently selected then it autoloads track #1
-function addVideo(path)
+function addVideo(path, force)
     --if preload is enabled we'll add everything the same way
     --and let mpv decide the track selection based on the --vid setting
     if o.preload then
-        mp.commandv('video-add', path, "auto")
+        if force then
+            mp.commandv('video-add', path, "select")
+        else
+            mp.commandv('video-add', path, "auto")
+        end
 
         if o.prefer_embedded and mp.get_property('options/vid', "") == "auto" then
             mp.set_property_number('file-local-options/vid', 1)
@@ -251,8 +255,9 @@ function addVideo(path)
         return
     end
 
-    if  mp.get_property_number('vid', 0) == 0
-        and mp.get_property('options/vid') == "auto"
+    if  force or
+        (mp.get_property_number('vid', 0) == 0
+        and mp.get_property('options/vid') == "auto")
     then
         mp.commandv('video-add', path)
     else
@@ -261,7 +266,7 @@ function addVideo(path)
 end
 
 --searches and adds valid coverart from the specified directory
-function addFromDirectory(directory)
+function addFromDirectory(directory, bypass, force)
     local files = utils.readdir(directory, "files")
     if files == nil then
         msg.verbose('no files could be loaded from ' .. directory)
@@ -276,7 +281,11 @@ function addFromDirectory(directory)
         if isValidCoverart(file) then
             msg.verbose(file .. ' is valid coverart - adding as extra video track...')
             success = 1
-            loadCover(utils.join_path(directory, file))
+            if not bypass then
+                loadCover(utils.join_path(directory, file), force)
+            else
+                addVideo(utils.join_path(directory, file), force)
+            end
             if not o.load_extra_files then return 1 end
         end
     end
@@ -431,12 +440,6 @@ end
 if o.icy_directory ~= "" then
     mp.observe_property('metadata/by-key/icy-name', 'string', function(_, name)
         if name == nil then return end
-
-        if addFromDirectory(o.icy_directory) ~= 1 then return end
-        local id = 2
-        if o.placeholder == "" then
-            id = 1
-        end
-        mp.set_property_number('file-local-options/vid', id)
+        addFromDirectory(o.icy_directory, true, true)
     end)
 end
