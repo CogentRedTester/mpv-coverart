@@ -362,11 +362,11 @@ function main(workingDirectory, filepath, exact_path, directory)
     if o.load_from_filesystem then
         --loads the files from the directory
         succeeded = addFromDirectory(directory)
-        if not o.load_extra_files and succeeded > 0 then return end
+        if not o.load_extra_files and succeeded or 0 > 0 then return end
 
         if o.check_parent and succeeded then
             succeeded = addFromDirectory(directory .. "/../")
-            if not o.load_extra_files and succeeded > 0 then return end
+            if not o.load_extra_files and succeeded or 0 > 0 then return end
         end
     end
     if ((not succeeded) and o.auto_load_from_playlist) or o.load_from_playlist then
