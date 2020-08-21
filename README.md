@@ -52,6 +52,9 @@ what this means in practice is the following:
 ### Skip Coverart
 When this is enabled the script will automatically skip any valid cover art files in the playlist, this can be very useful when loading a whole folder directly.
 
+### Icy Directory
+If this option is set to a valid directory then when an icecast stream is played this script will search for cover art inside that directory. Only files with names matching the `icy-name` metadata of the stream will be loaded, the usual names list is ignored. Due to how icy metadata is handled these covers cannot be loaded during preload, they will automatically be loaded once mpv detects that `icy-name` has changed.
+
 ### Decode URLs
 When this is enabled mpv will attempt to undo URL percent encoding for the specified protocols. This is probably only useful for the ftp protocol, for which ffmpeg does not support percent encoding.
 
