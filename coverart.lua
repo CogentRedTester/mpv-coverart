@@ -270,17 +270,17 @@ function addFromDirectory(directory, bypass, force)
     local files = utils.readdir(directory, "files")
     if files == nil then
         msg.verbose('no files could be loaded from "' .. directory .. '"')
-        return false
+        return nil
     end
     msg.verbose('scanning files in "' .. directory .. '"')
 
     --loops through the all the files in the directory to find if any are valid cover art
-    local success = 0
+    local success = false
     for i, file in ipairs(files) do
         --if the name matches one in the whitelist then load it
         if isValidCoverart(file) then
             msg.verbose('"' .. file .. '" is valid coverart - adding as extra video track...')
-            success = 1
+            success = true
             if not bypass then
                 loadCover(utils.join_path(directory, file), force)
             else
@@ -362,14 +362,14 @@ function main(workingDirectory, filepath, exact_path, directory)
     if o.load_from_filesystem then
         --loads the files from the directory
         succeeded = addFromDirectory(directory)
-        if not o.load_extra_files and succeeded > 0 then return end
+        if not o.load_extra_files and succeeded then return end
 
         if o.check_parent and succeeded then
             succeeded = addFromDirectory(directory .. "/../")
-            if not o.load_extra_files and succeeded > 0 then return end
+            if not o.load_extra_files and succeeded then return end
         end
     end
-    if ((not succeeded) and o.auto_load_from_playlist) or o.load_from_playlist then
+    if (succeeded == nil and o.auto_load_from_playlist) or o.load_from_playlist then
         --loads files from playlist
         msg.verbose('searching for coverart in current playlist')
         local pls = mp.get_property_native('playlist')
@@ -381,14 +381,14 @@ function main(workingDirectory, filepath, exact_path, directory)
                     msg.verbose('found cover in playlist')
                     loadCover(v.filename)
                     if not o.load_extra_files then return end
-                    succeeded = 1
+                    succeeded = true
                 end
             end
         end
     end
 
     --loads a placeholder image if no covers were found and a window is forced
-    if succeeded ~= 1 then loadPlaceholder() end
+    if not succeeded then loadPlaceholder() end
 end
 
 --runs automatically whenever a file is loaded
