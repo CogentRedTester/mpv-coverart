@@ -206,7 +206,7 @@ function splitFileName(file)
 end
 
 --checks if the given file matches the cover art requirements
-function isValidCoverart(file)
+function isValidCoverart(file, icy)
     msg.debug('testing if "' .. file .. '" is valid coverart')
     local filename, fileext = splitFileName(file)
 
@@ -217,9 +217,12 @@ function isValidCoverart(file)
         msg.debug('"' .. fileext .. '" valid, checking for valid name...')
     end
 
-    if  o.names == "" or names[filename]
-        or (o.icy_directory ~= "" and filename == mp.get_property('metadata/by-key/icy-name', ''):lower())
-    then
+    if icy then
+        if filename == mp.get_property('metadata/by-key/icy-name', ''):lower() then
+            msg.debug('filename valid')
+            return true
+        end
+    elseif  o.names == "" or names[filename] then
         msg.debug('filename valid')
         return true
     end
@@ -228,13 +231,13 @@ function isValidCoverart(file)
 end
 
 --loads the coverart
-function loadCover(path, force)
+function loadCover(path)
     if o.decode_urls and needsDecoding(path) then
         msg.debug('decoding URL')
         path = decodeURI(path)
     end
     table.insert(prev.coverart, path)
-    addVideo(path, force)
+    addVideo(path)
 end
 
 --adds the new file to the playing list
@@ -266,7 +269,7 @@ function addVideo(path, force)
 end
 
 --searches and adds valid coverart from the specified directory
-function addFromDirectory(directory, bypass, force)
+function addFromDirectory(directory, is_icy)
     local files = utils.readdir(directory, "files")
     if files == nil then
         msg.verbose('no files could be loaded from "' .. directory .. '"')
@@ -278,13 +281,13 @@ function addFromDirectory(directory, bypass, force)
     local success = false
     for i, file in ipairs(files) do
         --if the name matches one in the whitelist then load it
-        if isValidCoverart(file) then
+        if isValidCoverart(file, is_icy) then
             msg.verbose('"' .. file .. '" is valid coverart - adding as extra video track...')
             success = true
-            if not bypass then
-                loadCover(utils.join_path(directory, file), force)
+            if not is_icy then
+                loadCover(utils.join_path(directory, file))
             else
-                addVideo(utils.join_path(directory, file), force)
+                addVideo(utils.join_path(directory, file), true)
             end
             if not o.load_extra_files then return 1 end
         end
@@ -441,6 +444,6 @@ if o.icy_directory ~= "" then
     mp.observe_property('metadata/by-key/icy-name', 'string', function(_, name)
         if name == nil then return end
         msg.verbose('icy stream detected - loading coverart')
-        addFromDirectory(o.icy_directory, true, true)
+        addFromDirectory(o.icy_directory, true)
     end)
 end
