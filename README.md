@@ -2,7 +2,7 @@
 
 This script is for automatically loading external cover art files into mpv media player as additional video tracks.
 
-## Valid Cover-art
+## Valid Cover Art
 The script will automatically search the various scan locations for valid cover art. By default this will be all image files with the specified file names; names and image extensions can be modified through the config file. By setting the list of names to an empty string any image file in the scan locations will be loaded, by setting the list of image extensions to an empty string any file with the right name will be loaded. Naturally, it's a bad idea to disable both filters.
 
 
@@ -19,10 +19,15 @@ The script will detect when a file in the same directory is loaded and will reus
 
 You can also force the script to search for and load cover art using `script-message load-coverart`. This will bypass most scanning restrictions, including all of those mentioned above.
 
+
 ## Misc Behaviour
 If `--vid=no` is set then this
 script will load external cover art, but will not select them by default. Any other value for vid will only
 properly select internal cover art, though you might get lucky and have it select the right track by chance.
+
+
+## Configuration
+Look at [coverart.conf](coverart.conf) for the full list of options. This config file can be placed into the script-opts folder inside the mpv config directory to be loaded automatically.
 
 
 ## Other Functionality
@@ -57,6 +62,3 @@ If this option is set to a valid directory then when an icecast stream is played
 
 ### Decode URLs
 When this is enabled mpv will attempt to undo URL percent encoding for the specified protocols. This is probably only useful for the ftp protocol, for which ffmpeg does not support percent encoding.
-
-## Configuration
-Look at cover art.conf for the full list of options. This config file can be placed into the script-opts folder inside the mpv config directory to be loaded automatically.
