@@ -418,12 +418,17 @@ if o.skip_coverart then
         local playing = mp.get_property_number('playlist-playing-pos')
         local current = mp.get_property_number('playlist-current-pos')
         local count = mp.get_property_number('playlist-count')
+
+        --handles looping front end of playing to start and vice versa
         if playing == 0 and current == count-1 then
             cover_next = false
         elseif playing == count-1 and current == 0 then
             cover_next = true
+
+        --this is the main condition
+        --when playback continues naturally playing == current
         else
-            cover_next = playing < current
+            cover_next = playing <= current
         end
     end)
 
