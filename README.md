@@ -26,6 +26,27 @@ script will load external cover art, but will not select them by default. Any ot
 properly select internal cover art, though you might get lucky and have it select the right track by chance.
 
 
+## Preload Mode
+This is an experimental change to the way the script loads coverart, it loads cover art synchronously by hooking into the player's preloading phase
+(after file is loaded, but before playback start or track selection). This creates more seamless coverart loading, and has better compatibility
+with mpv's default track-loading behaviour. However, because the player has to wait for this script to finish processing before starting playback,
+it could potentially lead to the player freezing if something slows down the script. For this reason the setting is currently disabled by default
+while I wait and see if anyone reports any bugs, but I encourage everyone to try it out.
+
+What this means in practice is the following:
+* mpv player will not start playback until all cover art is loaded
+* this means that on slow file/network systems playback may be delayed
+* `track added` messages are not printed to the console
+* the `--vid=n` property is supported since mpv doesn't attempt to select `n` until after covers are loaded
+* watch-later saves will remember which cover the video was on
+* no more awkward switch from the black no-video screen to cover art at the start of every file (force-window=yes)
+* the window doesn't close and reopen in-between files when playing from the terminal (force-window=no)
+* external cover art will be loaded by default instead of embedded images (mpv behaviour, can be changed with an option)
+* may provide better compatibility with some other scripts and options
+
+Preload mode can be enabled by setting the script opt: `preload=yes`
+
+
 ## Configuration
 Look at [coverart.conf](coverart.conf) for the full list of options. This config file can be placed into the script-opts folder inside the mpv config directory to be loaded automatically.
 
@@ -37,22 +58,6 @@ None of these are enabled by default.
 
 ### Placeholder
 This script supports loading a placeholder image when cover art is not found. This can be useful for people who don't like their music running in the terminal, but also dislike the default black box that mpv player shows.
-
-### Preload Mode
-This is an experimental feature.
-
-Loads cover art synchronously by hooking into the player's preloading phase
-(after file is loaded, but before playback start or track selection)
-what this means in practice is the following:
-* mpv player will not start playback until all cover art is loaded
-* this means that on slow file/network systems playback may be delayed
-* `track added` messages are not printed to the console
-* the `--vid=n` property is supported since mpv doesn't attempt to select `n` until after covers are loaded
-* watch-later saves will remember which cover the video was on
-* no more awkward switch from the black no-video screen to cover art at the start of every file (force-window=yes)
-* the window doesn't close and reopen in-between files when playing from the terminal (force-window=no)
-* external cover art will be loaded by default instead of embedded images (mpv behaviour, can be changed with an option)
-* may provide better compatibility with some other scripts
 
 ### Skip Coverart
 When this is enabled the script will automatically skip any valid cover art files in the playlist, this can be very useful when loading a whole folder directly.
