@@ -111,7 +111,7 @@ o.placeholder = mp.command_native({"expand-path", o.placeholder})
 o.icy_directory = mp.command_native({"expand-path", o.icy_directory})
 
 --splits the string into a table on the semicolons
-function create_table(input)
+local function create_table(input)
     local t={}
     for str in string.gmatch(input, "([^;]+)") do
             t[str] = true
@@ -120,7 +120,7 @@ function create_table(input)
 end
 
 --processes the option strings to ensure they work with the script
-function processStrings()
+local function processStrings()
     --sets everything to lowercase to avoid confusion
     o.names = string.lower(o.names)
     o.imageExts = string.lower(o.imageExts)
@@ -134,7 +134,7 @@ end
 processStrings()
 
 --a music file is one where mpv returns an audio stream or coverart as the first track
-function is_audio_file()
+local function is_audio_file()
     if mp.get_property('track-list/0/type') == "audio" then
         return true
     elseif mp.get_property('track-list/0/albumart') == "yes" then
@@ -159,13 +159,13 @@ do
 end
 
 --checks if the path uses a protocol that requires encoding
-function needsDecoding(path)
+local function needsDecoding(path)
     local index = path:find(":")
     local protocol = path:sub(1, index-1)
     return decodeProtocols[protocol]
 end
 
-function hasVideo()
+local function hasVideo()
     local tracks = mp.get_property_native('track-list')
     for _,v in ipairs(tracks) do
         if (v.type == "video") then
@@ -174,21 +174,8 @@ function hasVideo()
     end
 end
 
---loads a placeholder image as cover art for the file
-function loadPlaceholder()
-    if  o.placeholder == ""
-        or not mp.get_property_bool('force-window', false)
-        or hasVideo()
-    then
-        return
-    end
-
-    msg.verbose('file does not have video track, loading placeholder')
-    addVideo(o.placeholder)
-end
-
 --splits filename into a name and extension
-function splitFileName(file)
+local function splitFileName(file)
     file = string.lower(file)
 
     --finds the file extension
@@ -203,7 +190,7 @@ function splitFileName(file)
 end
 
 --checks if the given file matches the cover art requirements
-function isValidCoverart(file, icy)
+local function isValidCoverart(file, icy)
     msg.debug('testing if "' .. file .. '" is valid coverart')
     local filename, fileext = splitFileName(file)
 
@@ -227,19 +214,9 @@ function isValidCoverart(file, icy)
     return false
 end
 
---loads the coverart
-function loadCover(path)
-    if o.decode_urls and needsDecoding(path) then
-        msg.debug('decoding URL')
-        path = decodeURI(path)
-    end
-    table.insert(prev.coverart, path)
-    addVideo(path)
-end
-
 --adds the new file to the playing list
 --if there is no video track currently selected then it autoloads track #1
-function addVideo(path, force)
+local function addVideo(path, force)
     --if preload is enabled we'll add everything the same way
     --and let mpv decide the track selection based on the --vid setting
     if o.preload then
@@ -265,8 +242,31 @@ function addVideo(path, force)
     end
 end
 
+--loads a placeholder image as cover art for the file
+local function loadPlaceholder()
+    if  o.placeholder == ""
+        or not mp.get_property_bool('force-window', false)
+        or hasVideo()
+    then
+        return
+    end
+
+    msg.verbose('file does not have video track, loading placeholder')
+    addVideo(o.placeholder)
+end
+
+--loads the coverart
+local function loadCover(path)
+    if o.decode_urls and needsDecoding(path) then
+        msg.debug('decoding URL')
+        path = decodeURI(path)
+    end
+    table.insert(prev.coverart, path)
+    addVideo(path)
+end
+
 --searches and adds valid coverart from the specified directory
-function addFromDirectory(directory, is_icy)
+local function addFromDirectory(directory, is_icy)
     local files = utils.readdir(directory, "files")
     if files == nil then
         msg.verbose('no files could be loaded from "' .. directory .. '"')
@@ -293,7 +293,7 @@ function addFromDirectory(directory, is_icy)
 end
 
 --finds directory information for the current file
-function findDirectory()
+local function findDirectory()
         --finds the local directory of the file
         local workingDirectory = mp.get_property('working-directory')
         local filepath = mp.get_property('path')
@@ -304,8 +304,45 @@ function findDirectory()
         return workingDirectory, filepath, exact_path, directory
 end
 
+--does the actual coverart loading
+local function main(workingDirectory, filepath, exact_path, directory)
+    msg.verbose('loading coverart for "' .. exact_path  .. '"')
+
+    local succeeded = false
+    if o.load_from_filesystem then
+        --loads the files from the directory
+        succeeded = addFromDirectory(directory)
+        if not o.load_extra_files and succeeded then return end
+
+        if o.check_parent and succeeded then
+            succeeded = addFromDirectory(directory .. "/../")
+            if not o.load_extra_files and succeeded then return end
+        end
+    end
+    if (succeeded == nil and o.auto_load_from_playlist) or o.load_from_playlist then
+        --loads files from playlist
+        msg.verbose('searching for coverart in current playlist')
+        local pls = mp.get_property_native('playlist')
+
+        for i,v in ipairs(pls)do
+            local dir, name = utils.split_path(v.filename)
+            if (not o.enforce_playlist_directory) or utils.join_path(workingDirectory, dir) == directory then
+                if isValidCoverart(name) then
+                    msg.verbose('found cover in playlist')
+                    loadCover(v.filename)
+                    if not o.load_extra_files then return end
+                    succeeded = true
+                end
+            end
+        end
+    end
+
+    --loads a placeholder image if no covers were found and a window is forced
+    if not succeeded then loadPlaceholder() end
+end
+
 --checks if the file requires a coverart search
-function autoRunCoverart()
+local function autoRunCoverart()
     --aborts the script if audio-display is disabled
     if mp.get_property('audio-display', "no") == "no" then
         msg.verbose('audio-display is disabled, aborting script')
@@ -352,43 +389,6 @@ function autoRunCoverart()
     end
 
     main(a,b,c,directory)
-end
-
---does the actual coverart loading
-function main(workingDirectory, filepath, exact_path, directory)
-    msg.verbose('loading coverart for "' .. exact_path  .. '"')
-
-    local succeeded = false
-    if o.load_from_filesystem then
-        --loads the files from the directory
-        succeeded = addFromDirectory(directory)
-        if not o.load_extra_files and succeeded then return end
-
-        if o.check_parent and succeeded then
-            succeeded = addFromDirectory(directory .. "/../")
-            if not o.load_extra_files and succeeded then return end
-        end
-    end
-    if (succeeded == nil and o.auto_load_from_playlist) or o.load_from_playlist then
-        --loads files from playlist
-        msg.verbose('searching for coverart in current playlist')
-        local pls = mp.get_property_native('playlist')
-
-        for i,v in ipairs(pls)do
-            local dir, name = utils.split_path(v.filename)
-            if (not o.enforce_playlist_directory) or utils.join_path(workingDirectory, dir) == directory then
-                if isValidCoverart(name) then
-                    msg.verbose('found cover in playlist')
-                    loadCover(v.filename)
-                    if not o.load_extra_files then return end
-                    succeeded = true
-                end
-            end
-        end
-    end
-
-    --loads a placeholder image if no covers were found and a window is forced
-    if not succeeded then loadPlaceholder() end
 end
 
 --runs automatically whenever a file is loaded
