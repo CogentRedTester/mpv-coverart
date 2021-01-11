@@ -24,7 +24,7 @@ local o = {
     imageExts = 'jpg;jpeg;png;bmp;gif',
 
     --by default it only loads coverart if it detects the file is an audio file
-    --an audio file is one where mpv reports the first stream as being audio or albumart
+    --an audio file is a file with audio streams and no video streams above 1 fps
     always_scan_coverart = false,
 
     --if false stops looking for coverart after finding a single valid file
@@ -135,12 +135,14 @@ processStrings()
 
 --a music file is one where mpv returns an audio stream or coverart as the first track
 local function is_audio_file()
-    if mp.get_property('track-list/0/type') == "audio" then
-        return true
-    elseif mp.get_property('track-list/0/albumart') == "yes" then
-        return true
+    local track_list = mp.get_property_native("track-list")
+
+    local has_audio = false
+    for _, track in ipairs(track_list) do
+        if track.type == "audio" then has_audio = true
+        elseif not track.albumart and (track["demux-fps"] or 0) > 1 then return false end
     end
-    return false
+    return has_audio
 end
 
 --decodes a URL address

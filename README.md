@@ -13,7 +13,7 @@ Through config options scanning of the parent folder for the current file can al
 
 
 ## Scan Conditions
-By default the script only searches for cover art if the current file is detected to be an audio file. An audio file is defined as one where the first entry in the track list is an audio track, or is tagged as cover art. The script can be changed to always scan for cover art in the options. 
+By default the script only searches for cover art if the current file is detected to be an audio file. An audio file is a file with audio streams and no video streams above 1 fps. The script can be changed to always scan for cover art in the options. 
 
 The script will detect when a file in the same directory is loaded and will reuse the same cover art without rescanning the folder. Additionally, if `--audio-display=no` is set then this script will not search for cover art at all. All options that can affect when files get scanned are documented in coverart.conf.
 
