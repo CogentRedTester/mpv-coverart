@@ -90,14 +90,7 @@ local o = {
     --by default mpv will select external video tracks first
     --this setting forces the first embedded file to be played first instead
     --to be specific this option just sets --vid to 1 when it is on auto
-    prefer_embedded = false,
-
-    --decode URL percent encoding
-    decode_urls = false,
-
-    --protocols to do percent decoding for
-    --use semicolons to split protocols
-    decode_protocols = "ftp;sftp"
+    prefer_embedded = false
 }
 local mp = require 'mp'
 local utils = require 'mp.utils'
@@ -107,7 +100,6 @@ opt.read_options(o, 'coverart')
 
 local names = {}
 local imageExts = {}
-local decodeProtocols = {}
 local prev = {
     directory = "",
     coverart = {}
@@ -134,7 +126,6 @@ local function processStrings()
     --splits the strings into tables
     names = create_table(o.names)
     imageExts = create_table(o.imageExts)
-    decodeProtocols = create_table(o.decode_protocols)
 end
 
 processStrings()
@@ -149,28 +140,6 @@ local function is_audio_file()
         elseif not track.albumart and (track["demux-fps"] or 2) > 1 then return false end
     end
     return has_audio
-end
-
---decodes a URL address
---this piece of code was taken from: https://stackoverflow.com/questions/20405985/lua-decodeuri-luvit/20406960#20406960
-local decodeURI
-do
-    local char, gsub, tonumber = string.char, string.gsub, tonumber
-    local function _(hex) return char(tonumber(hex, 16)) end
-
-    function decodeURI(s)
-        msg.debug('decoding string: ' .. s)
-        s = gsub(s, '%%(%x%x)', _)
-        msg.debug('returning string: ' .. s)
-        return s
-    end
-end
-
---checks if the path uses a protocol that requires encoding
-local function needsDecoding(path)
-    local index = path:find(":")
-    local protocol = path:sub(1, index-1)
-    return decodeProtocols[protocol]
 end
 
 local function hasVideo()
@@ -271,10 +240,6 @@ end
 
 --loads the coverart
 local function loadCover(path)
-    if o.decode_urls and needsDecoding(path) then
-        msg.debug('decoding URL')
-        path = decodeURI(path)
-    end
     table.insert(prev.coverart, path)
     addVideo(path)
 end
