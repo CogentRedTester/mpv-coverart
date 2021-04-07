@@ -80,6 +80,12 @@ local o = {
     --  -may provide better compatibility with some other scripts
     preload = false,
 
+    --tell mpv to load the given video as album art, this provides a number of optimisations and makes the
+    --coverart behave more like embedded albumart
+    --this is only available in mpv v0.34 (not yet released)
+    --this option effectively enforces prefer_embedded
+    use_albumart_flag = false,
+
     --prefer embedded video tracks over new external files when preload=true
     --by default mpv will select external video tracks first
     --this setting forces the first embedded file to be played first instead
@@ -216,6 +222,12 @@ local function isValidCoverart(file, icy)
     return false
 end
 
+--a wrapper for the video-add command to choose which version of the command to send
+local function videoAddWrapper(path, flag)
+    if o.use_albumart_flag then mp.commandv("video-add", path, flag, "", "", "yes")
+    else mp.commandv("video-add", path, flag) end
+end
+
 --adds the new file to the playing list
 --if there is no video track currently selected then it autoloads track #1
 local function addVideo(path, force)
@@ -223,12 +235,12 @@ local function addVideo(path, force)
     --and let mpv decide the track selection based on the --vid setting
     if o.preload then
         if force then
-            mp.commandv('video-add', path, "select")
+            videoAddWrapper(path, "select")
         else
-            mp.commandv('video-add', path, "auto")
+            videoAddWrapper(path, "auto")
         end
 
-        if o.prefer_embedded and mp.get_property('options/vid', "") == "auto" then
+        if not o.use_albumart_flag and o.prefer_embedded and mp.get_property('options/vid', "") == "auto" then
             mp.set_property_number('file-local-options/vid', 1)
         end
         return
@@ -238,9 +250,9 @@ local function addVideo(path, force)
         (mp.get_property_number('vid', 0) == 0
         and mp.get_property('options/vid') == "auto")
     then
-        mp.commandv('video-add', path)
+        videoAddWrapper(path, "select")
     else
-        mp.commandv('video-add', path, "auto")
+        videoAddWrapper(path, "auto")
     end
 end
 
