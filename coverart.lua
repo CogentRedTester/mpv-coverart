@@ -90,7 +90,10 @@ local o = {
     --by default mpv will select external video tracks first
     --this setting forces the first embedded file to be played first instead
     --to be specific this option just sets --vid to 1 when it is on auto
-    prefer_embedded = false
+    prefer_embedded = false,
+
+    --fallback to the first image with matching extension if none of names option were found
+    any_image_fallback = false
 }
 local mp = require 'mp'
 local utils = require 'mp.utils'
@@ -173,7 +176,7 @@ local function isValidCoverart(file, icy)
 
     if o.imageExts ~= "" and not imageExts[fileext] then
         msg.debug('"' .. fileext .. '" not in whitelist')
-        return false
+        return nil
     else
         msg.debug('"' .. fileext .. '" valid, checking for valid name...')
     end
@@ -255,9 +258,11 @@ local function addFromDirectory(directory, is_icy)
 
     --loops through the all the files in the directory to find if any are valid cover art
     local success = false
+    local first_ok
     for i, file in ipairs(files) do
         --if the name matches one in the whitelist then load it
-        if isValidCoverart(file, is_icy) then
+        local valid = isValidCoverart(file, is_icy)
+        if valid then
             msg.verbose('"' .. file .. '" is valid coverart - adding as extra video track...')
             success = true
             if not is_icy then
@@ -266,6 +271,16 @@ local function addFromDirectory(directory, is_icy)
                 addVideo(utils.join_path(directory, file), true)
             end
             if not o.load_extra_files then return 1 end
+        elseif o.any_image_fallback and valid == false and not first_ok then
+            first_ok = file
+        end
+    end
+    if first_ok and not success then
+        success = true
+        if not is_icy then
+            loadCover(utils.join_path(directory, first_ok))
+        else
+            addVideo(utils.join_path(directory, first_ok), true)
         end
     end
     return success
@@ -302,17 +317,25 @@ local function main(workingDirectory, filepath, exact_path, directory)
         --loads files from playlist
         msg.verbose('searching for coverart in current playlist')
         local pls = mp.get_property_native('playlist')
+        local first_ok
 
         for i,v in ipairs(pls)do
             local dir, name = utils.split_path(v.filename)
             if (not o.enforce_playlist_directory) or utils.join_path(workingDirectory, dir) == directory then
-                if isValidCoverart(name) then
+                local valid = isValidCoverart(name)
+                if valid then
                     msg.verbose('found cover in playlist')
                     loadCover(v.filename)
                     if not o.load_extra_files then return end
                     succeeded = true
+                elseif o.any_image_fallback and valid == false and not first_ok then
+                    first_ok = v.filename
                 end
             end
+        end
+        if first_ok and not succeeded then
+            loadCover(first_ok)
+            succeeded = true
         end
     end
 
